@@ -21,8 +21,9 @@ The `||` values concatenate the columns into strings.
 Edit the appropriate columns -- you're making two edits -- and the NULL rows will be fixed. 
 All the other rows will remain the same. */
 
-
-
+SELECT 
+	product_name || ', ' || COALESCE(product_size,'')|| ' (' || COALESCE(product_qty_type,'unit') || ')' as product_in_detail
+FROM product
 
 --Windowed Functions
 /* 1. Write a query that selects from the customer_purchases table and numbers each customer’s  
@@ -34,18 +35,36 @@ each new market date for each customer, or select only the unique market dates p
 (without purchase details) and number those visits. 
 HINT: One of these approaches uses ROW_NUMBER() and one uses DENSE_RANK(). */
 
-
+SELECT  
+	*,
+	DENSE_RANK() OVER(PARTITION BY customer_id ORDER BY market_date ) as customer_visit_counter 
+FROM customer_purchases
 
 /* 2. Reverse the numbering of the query from a part so each customer’s most recent visit is labeled 1, 
 then write another query that uses this one as a subquery (or temp table) and filters the results to 
 only the customer’s most recent visit. */
 
+WITH customer_visit AS (
 
+	SELECT  
+		market_date, customer_id,
+		DENSE_RANK() OVER(PARTITION BY customer_id ORDER BY market_date DESC ) as customer_visit_counter 
+	FROM customer_purchases
+)
+SELECT 
+	DISTINCT market_date, 
+	customer_id,
+	customer_visit_counter
+FROM customer_visit 
+WHERE customer_visit_counter=1
 
 /* 3. Using a COUNT() window function, include a value along with each row of the 
 customer_purchases table that indicates how many different times that customer has purchased that product_id. */
 
-
+SELECT  
+	*,
+	COUNT(*) OVER(PARTITION BY customer_id,product_id ) as customer_product_puchases 
+FROM customer_purchases
 
 -- String manipulations
 /* 1. Some product names in the product table have descriptions like "Jar" or "Organic". 
@@ -59,7 +78,14 @@ Remove any trailing or leading whitespaces. Don't just use a case statement for 
 
 Hint: you might need to use INSTR(product_name,'-') to find the hyphens. INSTR will help split the column. */
 
-
+SELECT *
+,CASE WHEN (trim(substr(product_name, (instr(product_name,'-')+1))) = 'Jar' 
+	  	OR
+	  	trim(substr(product_name, (instr(product_name,'-')+1))) = 'Organic')
+	  	THEN trim(substr(product_name, (instr(product_name,'-')+1)))
+	  ELSE NULL
+ END as new_col
+FROM product
 
 /* 2. Filter the query to show any product_size value that contain a number with REGEXP. */
 
