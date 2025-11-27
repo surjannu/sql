@@ -54,7 +54,44 @@ The store wants to keep customer addresses. Propose two architectures for the CU
 **HINT:** search type 1 vs type 2 slowly changing dimensions. 
 
 ```
-Your answer...
+The architecture that always keep only the latest address and also doesn't maintain any history is Type1 which is Slowly Changing Dimension(SCD Type1).
+Any change in the customer address overwrites the existing address in the table.
+
+Table Structure for CUSTOMER_ADDRESS table with type1 design is:
+
+customer_address_sk  INT  (PK - surrogate) --This is not required as such, it is just for design consistency
+customer_id          INT  (FK to CUSTOMER)
+address_line1        STRING
+address_line2        STRING
+city                 STRING
+state                STRING
+postal_code          STRING
+country              STRING
+last_updated_ts      TIMESTAMP
+
+
+The architecture that retain all the changes and maintains the history is Type2 which is Slowly Changing Dimension(SCD Type2). For the first new record, the effective_start_date column is updated with the BOT(Begining Of Time), in general it is '1900-01-01'  and effective_end_date is updated with EOT(End Of Time) generally it is '9999-12-31', along with the current_flag set to Y.
+And every time there is a change in the customer address:
+A new record is inserted with the new address which is flagged as active (current_flag=Y).  
+The existing record with previous address is marked a inactive (current_flag=N).
+The effective_start_date of the new inserted record is updated with the date it became active, with the effective_end_date being set to EOT.
+And the effective_end_date of the old record is updated as (date of new record active - 1second). 
+At any given time there will be only one active record per customer.
+
+Table Structure for CUSTOMER_ADDRESS table with type2 design is:
+
+customer_address_sk   INT (PK - surrogate)
+customer_id           INT (FK)
+address_line1         STRING
+address_line2         STRING
+city                  STRING
+state                 STRING
+postal_code           STRING
+country               STRING
+effective_start_date  DATE        -- when this address became active
+effective_end_date    DATE        -- when it stopped being active
+current_flag          BOOLEAN     -- Y/N
+
 ```
 
 ***
